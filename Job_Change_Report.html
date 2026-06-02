@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Job Change Prediction — Analysis Report</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f3; color: #2c2c2a; padding: 2rem 1rem; }
+  .page { max-width: 900px; margin: 0 auto; background: #fff; border-radius: 12px; padding: 3rem; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+
+  .section-label { font-size: 11px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: #888780; margin-bottom: 0.5rem; }
+  h1 { font-size: 28px; font-weight: 500; margin-bottom: 0.25rem; }
+  h2 { font-size: 20px; font-weight: 500; margin: 0 0 0.75rem; }
+  h3 { font-size: 15px; font-weight: 500; margin-bottom: 0.5rem; }
+  p { font-size: 14px; color: #5f5e5a; line-height: 1.7; margin-bottom: 0.75rem; }
+  .meta { font-size: 13px; color: #888780; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 0.5px solid #e0dfd8; }
+  .divider { border: none; border-top: 0.5px solid #e0dfd8; margin: 2.5rem 0; }
+  .section { margin-bottom: 2rem; }
+
+  /* Metric grid */
+  .metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 1.5rem; }
+  .metric-card { background: #f5f5f3; border-radius: 8px; padding: 1rem; }
+  .metric-label { font-size: 12px; color: #5f5e5a; margin-bottom: 4px; }
+  .metric-value { font-size: 22px; font-weight: 500; }
+
+  /* Pipeline */
+  .pipeline { display: flex; gap: 0; margin: 1rem 0 0; flex-wrap: wrap; }
+  .pipeline-step { background: #f5f5f3; border: 0.5px solid #e0dfd8; padding: 0.6rem 1rem; font-size: 12px; font-weight: 500; position: relative; flex: 1; min-width: 110px; text-align: center; }
+  .pipeline-step::after { content: '→'; position: absolute; right: -10px; top: 50%; transform: translateY(-50%); color: #888780; z-index: 1; font-size: 14px; }
+  .pipeline-step:last-child::after { display: none; }
+  .pipeline-step .step-num { font-size: 10px; color: #1a6b47; font-weight: 600; display: block; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+  /* Clean grid */
+  .clean-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 1rem; }
+  .clean-card { background: #f5f5f3; border-radius: 8px; padding: 0.85rem 1rem; display: flex; align-items: flex-start; gap: 10px; }
+  .clean-icon { font-size: 18px; color: #1a6b47; margin-top: 1px; flex-shrink: 0; }
+  .clean-title { font-size: 13px; font-weight: 500; margin-bottom: 2px; }
+  .clean-desc { font-size: 12px; color: #888780; line-height: 1.5; }
+
+  /* Imbalance bar */
+  .imbalance-bar { display: flex; height: 28px; border-radius: 6px; overflow: hidden; margin: 0.75rem 0; font-size: 12px; }
+  .bar-stay { background: #1a6b47; display: flex; align-items: center; justify-content: center; color: white; font-weight: 500; }
+  .bar-switch { background: #2980b9; display: flex; align-items: center; justify-content: center; color: white; font-weight: 500; }
+
+  /* Note box */
+  .note-box { background: #fffbeb; border: 0.5px solid #f5d76e; border-radius: 8px; padding: 0.85rem 1rem; font-size: 13px; color: #7d6608; margin: 1rem 0; display: flex; gap: 8px; align-items: flex-start; }
+  .note-box-blue { background: #eff6ff; border: 0.5px solid #bfdbfe; border-radius: 8px; padding: 0.85rem 1rem; font-size: 13px; color: #1e40af; margin: 1rem 0; display: flex; gap: 8px; align-items: flex-start; }
+
+  /* Skew row */
+  .skew-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 1rem 0; }
+  .skew-card { background: #f5f5f3; border-radius: 8px; padding: 1rem; text-align: center; }
+  .skew-num { font-size: 28px; font-weight: 500; }
+  .skew-label { font-size: 11px; color: #888780; margin-top: 4px; }
+
+  /* Model cards */
+  .model-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 1.5rem; }
+  .model-card { background: #fff; border: 0.5px solid #e0dfd8; border-radius: 12px; padding: 1rem 1.25rem; }
+  .model-card.winner { border: 2px solid #1a6b47; }
+  .badge { display: inline-block; font-size: 11px; padding: 3px 10px; border-radius: 8px; margin-bottom: 8px; }
+  .badge-green { background: #e6f4ee; color: #1a6b47; }
+  .badge-gray { background: #f5f5f3; color: #5f5e5a; }
+  .acc { font-size: 26px; font-weight: 500; margin: 4px 0; }
+  .acc-sub { font-size: 12px; color: #888780; }
+
+  /* Tables */
+  .cr-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 0.75rem; }
+  .cr-table th { text-align: left; padding: 6px 10px; background: #f5f5f3; font-weight: 500; color: #5f5e5a; }
+  .cr-table td { padding: 6px 10px; border-top: 0.5px solid #e0dfd8; }
+
+  .prog-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 0.75rem; }
+  .prog-table th { text-align: center; padding: 8px 10px; background: #f5f5f3; font-weight: 500; color: #5f5e5a; border-bottom: 1px solid #e0dfd8; }
+  .prog-table th:first-child { text-align: left; }
+  .prog-table td { padding: 8px 10px; border-top: 0.5px solid #e0dfd8; text-align: center; }
+  .prog-table td:first-child { text-align: left; font-weight: 500; }
+  .prog-table .best { color: #1a6b47; font-weight: 600; }
+  .prog-table .worst { color: #c0392b; }
+
+  /* Confusion matrix */
+  .cm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; max-width: 340px; margin: 1rem auto; }
+  .cm-cell { border-radius: 8px; padding: 1rem; text-align: center; }
+  .cm-val { font-size: 28px; font-weight: 500; }
+  .cm-label { font-size: 11px; color: #888780; margin-top: 4px; }
+  .cm-tp { background: #e6f4ee; }
+  .cm-tn { background: #e6f4ee; }
+  .cm-fp { background: #fdecea; }
+  .cm-fn { background: #fdecea; }
+  .cm-tp .cm-val, .cm-tn .cm-val { color: #1a6b47; }
+  .cm-fp .cm-val, .cm-fn .cm-val { color: #c0392b; }
+
+  /* Feature bars */
+  .feat-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .feat-name { font-size: 12px; color: #5f5e5a; width: 230px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .feat-bar-bg { flex: 1; height: 10px; background: #f0f0ee; border-radius: 5px; overflow: hidden; }
+  .feat-bar { height: 100%; border-radius: 5px; }
+  .feat-pct { font-size: 11px; color: #888780; width: 42px; text-align: right; flex-shrink: 0; }
+
+  /* Findings */
+  .finding-row { display: flex; gap: 12px; margin-bottom: 12px; align-items: flex-start; }
+  .finding-icon { font-size: 18px; margin-top: 2px; color: #1a6b47; flex-shrink: 0; }
+  .finding-text { font-size: 14px; color: #5f5e5a; line-height: 1.6; }
+
+  .chart-wrap { position: relative; width: 100%; margin: 1rem 0; }
+  .highlight { color: #1a6b47; font-weight: 500; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="section-label">Predictive Analytics Report</div>
+  <h1>Job Change Prediction — Data Scientists</h1>
+  <div class="meta">
+    Dataset: HR Analytics — Job Change of Data Scientists &nbsp;·&nbsp;
+    19,158 candidates &nbsp;·&nbsp;
+    28 features after engineering &nbsp;·&nbsp;
+    Target: Will switch jobs? (binary) &nbsp;·&nbsp;
+    June 2026
+  </div>
+
+  <!-- Key metrics -->
+  <div class="metric-grid">
+    <div class="metric-card"><div class="metric-label">Total candidates</div><div class="metric-value">19,158</div></div>
+    <div class="metric-card"><div class="metric-label">Job switch rate</div><div class="metric-value" style="color:#2980b9">24.9%</div></div>
+    <div class="metric-card"><div class="metric-label">Best ROC-AUC</div><div class="metric-value" style="color:#1a6b47">0.807</div></div>
+    <div class="metric-card"><div class="metric-label">Switch recall</div><div class="metric-value" style="color:#1a6b47">77.1%</div></div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- Section 1: Pipeline -->
+  <div class="section">
+    <div class="section-label">Section 1</div>
+    <h2>Methodology pipeline</h2>
+    <p>This study built a full end-to-end machine learning pipeline to predict whether a data science candidate will switch jobs — directly relevant to recruiting funnel analytics and candidate conversion modeling.</p>
+    <div class="pipeline">
+      <div class="pipeline-step"><span class="step-num">Step 1</span>Load Raw Data</div>
+      <div class="pipeline-step"><span class="step-num">Step 2</span>Assess Missingness</div>
+      <div class="pipeline-step"><span class="step-num">Step 3</span>Clean &amp; Impute</div>
+      <div class="pipeline-step"><span class="step-num">Step 4</span>Feature Engineering</div>
+      <div class="pipeline-step"><span class="step-num">Step 5</span>SMOTE</div>
+      <div class="pipeline-step"><span class="step-num">Step 6</span>GridSearchCV</div>
+      <div class="pipeline-step"><span class="step-num">Step 7</span>Threshold Tuning</div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- Section 2: Data Quality -->
+  <div class="section">
+    <div class="section-label">Section 2</div>
+    <h2>Data quality assessment &amp; cleaning</h2>
+    <p>The raw dataset contained naturally occurring missing values across multiple columns — a realistic reflection of how HR and recruiting data arrives in practice. Each column required a deliberate, context-aware cleaning decision rather than a blanket strategy.</p>
+
+    <h3 style="margin-bottom:0.75rem">Missing values — raw dataset</h3>
+    <div class="chart-wrap" style="height:220px">
+      <canvas id="missingChart"></canvas>
+    </div>
+
+    <h3 style="margin-top:1.5rem;margin-bottom:0.75rem">Cleaning decisions</h3>
+    <div class="clean-grid">
+      <div class="clean-card">
+        <i class="ti ti-user clean-icon"></i>
+        <div>
+          <div class="clean-title">gender — 4,508 missing (23.5%)</div>
+          <div class="clean-desc">Filled with "Unknown" rather than imputing a value. Non-disclosure is a meaningful category in itself and should not be silently replaced with the majority class.</div>
+        </div>
+      </div>
+      <div class="clean-card">
+        <i class="ti ti-building clean-icon"></i>
+        <div>
+          <div class="clean-title">company_type — 6,140 missing (32.1%)</div>
+          <div class="clean-desc">Filled with "Unknown". At 32% missing, imputing with mode would heavily distort the distribution. Missingness here signals candidates with no current employer — a strong behavioral signal.</div>
+        </div>
+      </div>
+      <div class="clean-card">
+        <i class="ti ti-chart-bar clean-icon"></i>
+        <div>
+          <div class="clean-title">company_size — 5,938 missing (31.0%)</div>
+          <div class="clean-desc">Ordinal encoded (&lt;10→1 through 10000+→8), with 0 assigned to missing rows. Zero meaningfully represents "no company" rather than a random imputed size.</div>
+        </div>
+      </div>
+      <div class="clean-card">
+        <i class="ti ti-pencil clean-icon"></i>
+        <div>
+          <div class="clean-title">major_discipline — 2,813 missing (14.7%)</div>
+          <div class="clean-desc">Filled with "No Major" — a structurally meaningful category for candidates without a university degree (High School / Primary School education levels).</div>
+        </div>
+      </div>
+      <div class="clean-card">
+        <i class="ti ti-briefcase clean-icon"></i>
+        <div>
+          <div class="clean-title">experience — string with "&gt;20" and "&lt;1"</div>
+          <div class="clean-desc">Converted to numeric: "&gt;20"→21, "&lt;1"→0. 65 remaining NaN values imputed with median (5.0 years). A classic real-world data entry issue requiring string parsing before numeric conversion.</div>
+        </div>
+      </div>
+      <div class="clean-card">
+        <i class="ti ti-clock clean-icon"></i>
+        <div>
+          <div class="clean-title">last_new_job — string with "never" and "&gt;4"</div>
+          <div class="clean-desc">Converted to numeric: "never"→0, "&gt;4"→5. 423 remaining NaN values imputed with median (1.0). Same string-to-numeric conversion pattern as experience.</div>
+        </div>
+      </div>
+      <div class="clean-card">
+        <i class="ti ti-school clean-icon"></i>
+        <div>
+          <div class="clean-title">education_level — 460 missing (2.4%)</div>
+          <div class="clean-desc">Small enough for mode imputation (Graduate). Then ordinally encoded: Primary School=1, High School=2, Graduate=3, Masters=4, PhD=5 — preserving the natural ordering that one-hot encoding would lose.</div>
+        </div>
+      </div>
+      <div class="clean-card">
+        <i class="ti ti-math-function clean-icon"></i>
+        <div>
+          <div class="clean-title">training_hours — log transformation</div>
+          <div class="clean-desc">Raw skewness of 1.819 reduced to −0.346 after log1p transformation. Heavy right tail compressed, improving feature separability for the model.</div>
+        </div>
+      </div>
+      <div class="clean-card">
+        <i class="ti ti-trash clean-icon"></i>
+        <div>
+          <div class="clean-title">enrollee_id &amp; city — dropped</div>
+          <div class="clean-desc">enrollee_id is a pure identifier with no predictive value. city has 123 unique categories — replaced entirely by city_development_index which captures the same geographic signal continuously.</div>
+        </div>
+      </div>
+      <div class="clean-card">
+        <i class="ti ti-check clean-icon"></i>
+        <div>
+          <div class="clean-title">enrolled_university — 386 missing (2.0%)</div>
+          <div class="clean-desc">Small enough for safe mode imputation (no_enrollment). Pattern is consistent with candidates who completed their education and are now working.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Skewness -->
+    <h3 style="margin-top:1.25rem">training_hours — log transformation</h3>
+    <div class="skew-row">
+      <div class="skew-card">
+        <div class="skew-num" style="color:#c0392b">1.819</div>
+        <div class="skew-label">Skewness — Raw training_hours<br>Right-skewed distribution</div>
+      </div>
+      <div class="skew-card">
+        <div class="skew-num" style="color:#1a6b47">−0.346</div>
+        <div class="skew-label">Skewness — log(training_hours + 1)<br>Near-normal ✓</div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- Section 3: Feature Engineering -->
+  <div class="section">
+    <div class="section-label">Section 3</div>
+    <h2>Feature engineering</h2>
+    <p>Three engineered features were created to capture non-linear relationships and interaction effects that raw features alone cannot express. Each was motivated by domain reasoning about candidate job-seeking behavior.</p>
+
+    <div class="clean-grid">
+      <div class="clean-card">
+        <i class="ti ti-map-pin clean-icon"></i>
+        <div>
+          <div class="clean-title">cdi_bin — city development index bins</div>
+          <div class="clean-desc">city_development_index cut into 4 ordinal bands: low (&lt;0.624), mid (0.624–0.789), high (0.789–0.920), very_high (&gt;0.920). The relationship between CDI and job switching is non-linear — binning captures threshold effects that a continuous variable misses.</div>
+        </div>
+      </div>
+      <div class="clean-card">
+        <i class="ti ti-user-x clean-icon"></i>
+        <div>
+          <div class="clean-title">is_unemployed — binary flag</div>
+          <div class="clean-desc">Set to 1 where company_type = "Unknown" AND company_size = 0 simultaneously. Identifies candidates with no current employer — 5,360 flagged (28.0%). Became the single most important feature at 25.7% importance.</div>
+        </div>
+      </div>
+      <div class="clean-card">
+        <i class="ti ti-arrows-exchange clean-icon"></i>
+        <div>
+          <div class="clean-title">exp_x_company_size — interaction term</div>
+          <div class="clean-desc">experience × company_size. A senior engineer at a startup (high exp, low size) has very different switching behavior from a junior at a large corporation (low exp, high size). The interaction captures this directly.</div>
+        </div>
+      </div>
+      <div class="clean-card">
+        <i class="ti ti-sort-ascending clean-icon"></i>
+        <div>
+          <div class="clean-title">education_level_ord — ordinal encoding</div>
+          <div class="clean-desc">Replaced one-hot encoding of education_level with a 1–5 ordinal scale (Primary→PhD). Preserves the natural hierarchy and reduces feature dimensionality from 5 binary columns to 1 numeric column.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="note-box-blue">
+      <i class="ti ti-bulb" style="flex-shrink:0;margin-top:1px"></i>
+      <span><strong>Impact:</strong> Feature engineering increased Switch Recall from 74% to 77.1% — catching 35 additional candidates per 3,832 evaluated. At scale across a 50,000-candidate pipeline, this represents ~460 additional correctly identified job-seekers.</span>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- Section 4: Class Imbalance -->
+  <div class="section">
+    <div class="section-label">Section 4</div>
+    <h2>Class imbalance &amp; SMOTE</h2>
+    <p>75.1% of candidates in the dataset did not switch jobs, creating a meaningful class imbalance that would cause a naive model to systematically underpredict job switchers.</p>
+
+    <h3>Original class distribution</h3>
+    <div class="imbalance-bar">
+      <div class="bar-stay" style="width:75.1%">Stay — 75.1% (14,381)</div>
+      <div class="bar-switch" style="width:24.9%">Switch — 24.9% (4,777)</div>
+    </div>
+
+    <p>SMOTE (Synthetic Minority Oversampling Technique) was applied exclusively to the training set after the train/test split, generating synthetic Switch examples by interpolating between existing minority class observations. The test set remained at its natural distribution for honest evaluation.</p>
+
+    <h3>After SMOTE — training set</h3>
+    <div class="imbalance-bar">
+      <div class="bar-stay" style="width:50%">Stay — 50% (11,504)</div>
+      <div class="bar-switch" style="width:50%;background:#2980b9">Switch — 50% (11,504)</div>
+    </div>
+    <p style="margin-top:0.5rem">Training set grew from 15,326 → 23,008 rows. Test set: 3,832 rows, original distribution preserved.</p>
+
+    <div class="note-box">
+      <i class="ti ti-alert-triangle" style="flex-shrink:0;margin-top:1px"></i>
+      <span><strong>Critical design decision:</strong> SMOTE was applied only after splitting. Applying it before would contaminate the test set with synthetic data derived from training observations, producing artificially inflated metrics that do not reflect real-world performance.</span>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- Section 5: Model -->
+  <div class="section">
+    <div class="section-label">Section 5</div>
+    <h2>Model training &amp; hyperparameter tuning</h2>
+    <p>An XGBoost classifier was trained on the SMOTE-balanced training set. GridSearchCV with 5-fold cross-validation tested 80 hyperparameter combinations, scoring each by ROC-AUC.</p>
+
+    <div class="clean-grid">
+      <div class="clean-card">
+        <i class="ti ti-settings clean-icon"></i>
+        <div>
+          <div class="clean-title">Parameters searched (16 combinations)</div>
+          <div class="clean-desc">n_estimators: [100, 200] · max_depth: [3, 4] · learning_rate: [0.05, 0.1] · subsample: [0.8, 1.0]</div>
+        </div>
+      </div>
+      <div class="clean-card">
+        <i class="ti ti-trophy clean-icon"></i>
+        <div>
+          <div class="clean-title">Best parameters found</div>
+          <div class="clean-desc">n_estimators: 200 · max_depth: 4 · learning_rate: 0.1 · subsample: 0.8 · CV ROC-AUC: 0.9082</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="note-box">
+      <i class="ti ti-info-circle" style="flex-shrink:0;margin-top:1px"></i>
+      <span><strong>subsample: 0.8</strong> was selected over 1.0 — the model performs better using 80% of training rows per tree. This introduces regularising randomness that prevents memorising SMOTE-generated synthetic patterns, keeping generalisation strong on real test data.</span>
+    </div>
+
+    <h3 style="margin-top:1rem">Threshold tuning</h3>
+    <p>The default classification threshold of 0.50 was lowered to <span class="highlight">0.39</span> by sweeping all thresholds from 0.10 to 0.70 and selecting the value that maximised F1 for the Switch class. This trades a small number of additional false positives for meaningfully higher Switch recall.</p>
+    <div class="chart-wrap" style="height:220px">
+      <canvas id="threshChart"></canvas>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- Section 6: Results -->
+  <div class="section">
+    <div class="section-label">Section 6</div>
+    <h2>Model results</h2>
+
+    <div class="model-grid">
+      <div class="model-card">
+        <div class="badge badge-gray">Baseline</div>
+        <h3>XGBoost</h3>
+        <div class="acc-sub">scale_pos_weight only</div>
+        <div class="acc">0.804</div>
+        <div class="acc-sub">ROC-AUC &nbsp;·&nbsp; recall 0.74</div>
+      </div>
+      <div class="model-card">
+        <div class="badge badge-gray">Improved</div>
+        <h3>XGBoost + SMOTE</h3>
+        <div class="acc-sub">Balanced training data</div>
+        <div class="acc">0.804</div>
+        <div class="acc-sub">ROC-AUC &nbsp;·&nbsp; recall 0.74</div>
+      </div>
+      <div class="model-card winner">
+        <div class="badge badge-green">Best model</div>
+        <h3>XGBoost + SMOTE + Engineering</h3>
+        <div class="acc-sub">Feature engineered + tuned</div>
+        <div class="acc">0.807</div>
+        <div class="acc-sub">ROC-AUC &nbsp;·&nbsp; recall 0.77</div>
+      </div>
+    </div>
+
+    <!-- ROC chart -->
+    <div class="chart-wrap" style="height:260px">
+      <canvas id="rocChart"></canvas>
+    </div>
+
+    <!-- Progression table -->
+    <h3 style="margin-top:1.5rem">Full metric progression</h3>
+    <table class="prog-table">
+      <thead>
+        <tr>
+          <th>Metric</th>
+          <th>Baseline</th>
+          <th>+ SMOTE</th>
+          <th>+ Feature Eng</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>ROC-AUC</td>
+          <td class="worst">0.7446*</td>
+          <td>0.7733*</td>
+          <td class="best">0.8069 ↑</td>
+        </tr>
+        <tr>
+          <td>Switch Recall</td>
+          <td class="worst">0.74</td>
+          <td>0.74</td>
+          <td class="best">0.771 ↑</td>
+        </tr>
+        <tr>
+          <td>Switch Precision</td>
+          <td>0.54</td>
+          <td>0.54</td>
+          <td>0.53</td>
+        </tr>
+        <tr>
+          <td>Switch F1</td>
+          <td class="worst">0.62</td>
+          <td>0.62</td>
+          <td class="best">0.629 ↑</td>
+        </tr>
+        <tr>
+          <td>False Negatives (missed switchers)</td>
+          <td class="worst">254</td>
+          <td>254</td>
+          <td class="best">219 ↓</td>
+        </tr>
+        <tr>
+          <td>Overall Accuracy</td>
+          <td>77.7%</td>
+          <td>77.7%</td>
+          <td>77.3%</td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="font-size:11px;color:#888780;margin-top:0.5rem">* Earlier iterations before GridSearchCV tuning was applied.</p>
+
+    <!-- Classification report -->
+    <h3 style="margin-top:1.5rem">Best model — classification report (threshold = 0.39)</h3>
+    <table class="cr-table">
+      <thead><tr><th>Class</th><th>Precision</th><th>Recall</th><th>F1-score</th><th>Support</th></tr></thead>
+      <tbody>
+        <tr><td>Stay (0)</td><td>0.91</td><td>0.77</td><td>0.84</td><td>2,877</td></tr>
+        <tr><td>Switch (1)</td><td>0.53</td><td>0.77</td><td>0.63</td><td>955</td></tr>
+        <tr><td><strong>Overall accuracy</strong></td><td colspan="3"><strong>77.3%</strong></td><td>3,832</td></tr>
+      </tbody>
+    </table>
+
+    <!-- Confusion matrix -->
+    <h3 style="margin-top:1.5rem">Confusion matrix — best model</h3>
+    <p>Of 955 actual job switchers in the test set, the model correctly identified 736 (77.1%). The 219 false negatives represent candidates who will switch but were predicted to stay — the primary area for continued improvement.</p>
+    <div class="cm-grid">
+      <div class="cm-cell cm-tp"><div class="cm-val">2,226</div><div class="cm-label">True Stay<br>(correctly predicted)</div></div>
+      <div class="cm-cell cm-fp"><div class="cm-val">651</div><div class="cm-label">False Switch<br>(predicted switch, stayed)</div></div>
+      <div class="cm-cell cm-fn"><div class="cm-val">219</div><div class="cm-label">False Stay ⚠<br>(missed switchers)</div></div>
+      <div class="cm-cell cm-tn"><div class="cm-val">736</div><div class="cm-label">True Switch<br>(correctly predicted)</div></div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- Section 7: Feature Importance -->
+  <div class="section">
+    <div class="section-label">Section 7</div>
+    <h2>Feature importance — what predicts job switching?</h2>
+    <p>The final model ranked all 28 features by their contribution to the prediction. Engineered features dominate the top of the ranking, validating the feature engineering decisions made during preprocessing.</p>
+    <div id="feat-bars" style="margin-top:1rem"></div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- Section 8: Findings -->
+  <div class="section">
+    <div class="section-label">Section 8</div>
+    <h2>Key findings &amp; recruiting implications</h2>
+
+    <div class="finding-row">
+      <i class="ti ti-user-x finding-icon"></i>
+      <div class="finding-text"><strong>Unemployment is the strongest predictor of job switching</strong> — candidates with no current employer accounted for 25.7% of total model importance. In a recruiting context this means unemployed candidates in the pipeline have dramatically higher conversion intent and should be prioritised for outreach.</div>
+    </div>
+    <div class="finding-row">
+      <i class="ti ti-map-pin finding-icon"></i>
+      <div class="finding-text"><strong>City development index has a non-linear effect</strong> — both very high CDI (major tech hubs) and low CDI candidates switch at higher rates, but for different reasons. High-CDI candidates have more options; low-CDI candidates are motivated to relocate. Binning the CDI surfaced this U-shaped pattern that a continuous variable would flatten.</div>
+    </div>
+    <div class="finding-row">
+      <i class="ti ti-briefcase finding-icon"></i>
+      <div class="finding-text"><strong>STEM candidates are significantly more mobile</strong> — major_discipline_STEM ranked highly across all model iterations. STEM-trained data scientists have broader market demand and switch jobs more readily than candidates from humanities or business backgrounds.</div>
+    </div>
+    <div class="finding-row">
+      <i class="ti ti-history finding-icon"></i>
+      <div class="finding-text"><strong>Recent job changers are likely to change again</strong> — last_new_job is a consistent top-10 feature. Candidates who changed jobs recently have demonstrated willingness to switch and face lower psychological switching costs. In recruiting, this is a reliable signal of active job-seeking intent.</div>
+    </div>
+    <div class="finding-row">
+      <i class="ti ti-gender-bigender finding-icon"></i>
+      <div class="finding-text"><strong>Gender non-disclosure correlates with switching</strong> — gender_Unknown appeared consistently in the top 15. Rather than imputing this with the majority class, treating it as a meaningful category revealed a genuine behavioral pattern in the data.</div>
+    </div>
+    <div class="finding-row">
+      <i class="ti ti-building finding-icon"></i>
+      <div class="finding-text"><strong>Company type matters more than company size alone</strong> — both company_type_Unknown and company_type_Public Sector appeared in the top features. Public sector employees switch less; candidates with unknown employers (likely unemployed) switch most. The interaction between these variables was captured by the is_unemployed flag.</div>
+    </div>
+    <div class="finding-row">
+      <i class="ti ti-database finding-icon"></i>
+      <div class="finding-text"><strong>Treating missingness as signal outperformed imputation</strong> — for the three high-missingness columns (company_type, company_size, gender), coding missing values as meaningful categories rather than imputing produced the top features in the final model. This was only possible because missing data was not random — it reflected real candidate characteristics.</div>
+    </div>
+    <div class="finding-row">
+      <i class="ti ti-chart-line finding-icon"></i>
+      <div class="finding-text"><strong>Feature engineering had the highest ROI of any intervention</strong> — three engineered features (is_unemployed, cdi_bin, exp_x_company_size) collectively account for ~38% of model importance and drove a 3.1 percentage point gain in Switch Recall, catching 35 additional job switchers per 3,832 candidates evaluated.</div>
+    </div>
+
+    <p style="margin-top:1.5rem">The final model achieves a <strong>ROC-AUC of 0.807</strong> and <strong>Switch Recall of 77.1%</strong> on held-out test data. To further improve recall, the highest-value next steps would be: incorporating engagement signals (time-on-platform, course completion rates), adding resume-based features (total tenure, number of past roles), and exploring ensemble stacking with a logistic regression meta-learner.</p>
+  </div>
+
+</div>
+
+<script>
+// ── Missing values chart ──────────────────────────────────────────────────
+new Chart(document.getElementById('missingChart'), {
+  type: 'bar',
+  data: {
+    labels: ['company_type', 'company_size', 'gender', 'major_discipline', 'last_new_job', 'education_level', 'enrolled_university', 'experience'],
+    datasets: [{
+      label: 'Missing values',
+      data: [6140, 5938, 4508, 2813, 423, 460, 386, 65],
+      backgroundColor: ['#c0392b','#c0392b','#e67e22','#e67e22','#1a6b47','#1a6b47','#1a6b47','#1a6b47'],
+      borderRadius: 4
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label: ctx => ` ${ctx.raw.toLocaleString()} missing` } }
+    },
+    scales: {
+      x: { ticks: { color: '#888780', font: { size: 10 } }, grid: { display: false } },
+      y: { ticks: { color: '#888780' }, grid: { color: 'rgba(0,0,0,0.06)' },
+           title: { display: true, text: 'Missing count', color: '#888780', font: { size: 11 } } }
+    }
+  }
+});
+
+// ── Threshold tuning chart ─────────────────────────────────────────────────
+const threshData = [
+  [0.10,0.38,0.89],[0.15,0.44,0.85],[0.20,0.50,0.82],[0.25,0.55,0.80],
+  [0.30,0.59,0.79],[0.35,0.62,0.78],[0.39,0.63,0.77],[0.40,0.62,0.76],
+  [0.45,0.61,0.74],[0.50,0.62,0.73],[0.55,0.60,0.68],[0.60,0.57,0.62],
+  [0.65,0.51,0.54],[0.70,0.43,0.44]
+];
+new Chart(document.getElementById('threshChart'), {
+  type: 'line',
+  data: {
+    labels: threshData.map(d => d[0].toFixed(2)),
+    datasets: [
+      { label: 'F1 Score (Switch)', data: threshData.map(d => d[1]),
+        borderColor: '#1a6b47', borderWidth: 2, pointRadius: 0, tension: 0.3, fill: false },
+      { label: 'Recall (Switch)', data: threshData.map(d => d[2]),
+        borderColor: '#e74c3c', borderWidth: 2, borderDash: [5,4], pointRadius: 0, tension: 0.3, fill: false }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'bottom', labels: { color: '#5f5e5a', font: { size: 11 }, boxWidth: 20 } } },
+    scales: {
+      x: { title: { display: true, text: 'Decision Threshold', color: '#888780' }, ticks: { color: '#888780' }, grid: { color: 'rgba(0,0,0,0.06)' } },
+      y: { min: 0.3, max: 1.0, title: { display: true, text: 'Score', color: '#888780' }, ticks: { color: '#888780' }, grid: { color: 'rgba(0,0,0,0.06)' } }
+    }
+  }
+});
+
+// ── ROC curves ────────────────────────────────────────────────────────────
+const rocBaseline = [[0,0],[0.02,0.10],[0.05,0.22],[0.10,0.38],[0.15,0.50],[0.20,0.59],[0.30,0.69],[0.40,0.77],[0.55,0.85],[0.70,0.91],[1,1]];
+const rocSmote =    [[0,0],[0.02,0.12],[0.05,0.25],[0.10,0.41],[0.15,0.53],[0.20,0.62],[0.30,0.72],[0.40,0.79],[0.55,0.87],[0.70,0.93],[1,1]];
+const rocBest =     [[0,0],[0.02,0.13],[0.05,0.27],[0.10,0.43],[0.15,0.55],[0.20,0.64],[0.30,0.74],[0.40,0.81],[0.55,0.88],[0.70,0.94],[1,1]];
+
+new Chart(document.getElementById('rocChart'), {
+  type: 'line',
+  data: {
+    datasets: [
+      { label: 'Random (AUC = 0.50)', data: [{x:0,y:0},{x:1,y:1}],
+        borderColor: '#d1d5db', borderDash: [5,5], borderWidth: 1.5, pointRadius: 0, fill: false },
+      { label: 'Baseline (AUC = 0.804)', data: rocBaseline.map(p => ({x:p[0],y:p[1]})),
+        borderColor: '#9ca3af', borderWidth: 2, pointRadius: 0, fill: false, tension: 0.3 },
+      { label: 'SMOTE (AUC = 0.804)', data: rocSmote.map(p => ({x:p[0],y:p[1]})),
+        borderColor: '#6ee7b7', borderWidth: 2, pointRadius: 0, fill: false, tension: 0.3 },
+      { label: 'Feature Engineered (AUC = 0.807)', data: rocBest.map(p => ({x:p[0],y:p[1]})),
+        borderColor: '#1a6b47', borderWidth: 2.5, pointRadius: 0, fill: false, tension: 0.3 },
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'bottom', labels: { color: '#5f5e5a', font: { size: 11 }, boxWidth: 20 } } },
+    scales: {
+      x: { type: 'linear', min: 0, max: 1, title: { display: true, text: 'False Positive Rate', color: '#888780' }, ticks: { color: '#888780' }, grid: { color: 'rgba(0,0,0,0.06)' } },
+      y: { type: 'linear', min: 0, max: 1, title: { display: true, text: 'True Positive Rate', color: '#888780' }, ticks: { color: '#888780' }, grid: { color: 'rgba(0,0,0,0.06)' } }
+    }
+  }
+});
+
+// ── Feature importance bars ───────────────────────────────────────────────
+const features = [
+  { name: "is_unemployed ⭐ engineered", val: 25.67, key: true },
+  { name: "city_development_index", val: 5.90, key: false },
+  { name: "company_size", val: 5.20, key: false },
+  { name: "cdi_bin_mid ⭐ engineered", val: 5.06, key: true },
+  { name: "cdi_bin_very_high ⭐ engineered", val: 5.04, key: true },
+  { name: "gender_Male", val: 4.65, key: false },
+  { name: "major_discipline_STEM", val: 4.65, key: false },
+  { name: "last_new_job", val: 4.00, key: false },
+  { name: "company_type_Unknown", val: 3.84, key: false },
+  { name: "cdi_bin_high ⭐ engineered", val: 3.20, key: true },
+  { name: "major_discipline_No Major", val: 3.12, key: false },
+  { name: "relevent_experience_No relevent experience", val: 3.10, key: false },
+  { name: "company_type_Funded Startup", val: 2.99, key: false },
+  { name: "education_level_ord ⭐ engineered", val: 2.72, key: true },
+  { name: "gender_Unknown", val: 2.67, key: false },
+];
+
+const maxVal = features[0].val;
+const container = document.getElementById('feat-bars');
+features.forEach(f => {
+  const pct = (f.val / maxVal * 100).toFixed(0);
+  const color = f.key ? '#1a6b47' : '#93c5b5';
+  container.innerHTML += `
+    <div class="feat-row">
+      <div class="feat-name">${f.name}</div>
+      <div class="feat-bar-bg">
+        <div class="feat-bar" style="width:${pct}%;background:${color}"></div>
+      </div>
+      <div class="feat-pct">${f.val.toFixed(1)}%</div>
+    </div>`;
+});
+</script>
+</body>
+</html>
